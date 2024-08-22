@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio</title>
+</head>
+
+<body>
+    <button id="start-record-btn">Démarrer l'enregistrement</button>
+    <button id="stop-record-btn" disabled>Arrêter l'enregistrement</button>
+    <audio id="audio-playback" controls style="display: none;"></audio>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const startRecordBtn = document.getElementById('start-record-btn');
+        const stopRecordBtn = document.getElementById('stop-record-btn');
+        const audioPlayback = document.getElementById('audio-playback');
+
+        // Vérifier si le navigateur supporte l'API
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            console.log('getUserMedia supporté.');
+
+            startRecordBtn.addEventListener('click', () => {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+
+                        // Démarrer l'enregistrement
+                        mediaRecorder.start();
+                        console.log('Enregistrement démarré.');
+
+                        // Activer/désactiver les boutons
+                        startRecordBtn.disabled = true;
+                        stopRecordBtn.disabled = false;
+
+                        mediaRecorder.ondataavailable = event => {
+                            audioChunks.push(event.data);
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            audioChunks = [];
+
+                            // Créer une URL pour le Blob audio
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            audioPlayback.src = audioUrl;
+                            audioPlayback.style.display = 'block';
+
+                            // Télécharger le fichier audio
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = audioUrl;
+                            downloadLink.download = 'recording.wav';
+                            downloadLink.textContent = 'Télécharger la note vocale';
+                            document.body.appendChild(downloadLink);
+                        };
+                    })
+                    .catch(err => {
+                        console.error('Erreur d\'enregistrement:', err);
+                    });
+            });
+
+            stopRecordBtn.addEventListener('click', () => {
+                // Arrêter l'enregistrement
+                mediaRecorder.stop();
+                console.log('Enregistrement arrêté.');
+
+                // Activer/désactiver les boutons
+                startRecordBtn.disabled = false;
+                stopRecordBtn.disabled = true;
+            });
+        } else {
+            console.error('getUserMedia non supporté dans ce navigateur.');
+        }
+    </script>
+</body>
+
+</html>
